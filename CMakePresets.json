@@ -13,7 +13,7 @@
       "cacheVariables": {
         "ISING_ENABLE_OPENMP": "TRUE",
         "ISING_ENABLE_MPI": "TRUE",
-        "ISING_BUILD_TESTS": "FALSE",
+        "ISING_BUILD_TESTS": "TRUE",
         "ISING_BUILD_BENCH": "FALSE",
         "ISING_BUILD_EXAMPLES": "FALSE",
         "ISING_CMAKE_DEBUG": "TRUE",

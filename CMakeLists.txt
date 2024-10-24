@@ -27,7 +27,7 @@ endif()
 ### Add all source files
 add_executable(Ising
         source/main.cpp
-        source/ising/ising.cpp
+        source/ising.cpp
         # ...
         )
 

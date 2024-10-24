@@ -13,6 +13,8 @@ if(TARGET OpenMP::OpenMP_CXX)
     list(APPEND TESTS test-openmp)
 endif()
 
+list(APPEND TESTS terst-ising)
+
 foreach (test ${TESTS})
     add_executable(${test} ${test}.cpp)
     target_include_directories(${test} PRIVATE ${CMAKE_SOURCE_DIR}/source)
