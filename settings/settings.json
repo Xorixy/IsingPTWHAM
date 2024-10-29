@@ -1,0 +1,22 @@
+{
+  "debug":
+    {
+      "allow_invalid_setting": true
+    },
+
+  "constants" :
+    {
+      "size_x" : 3,
+      "size_y" : 1,
+      "size_z" : 1,
+
+      "n_steps" : 1000000000,
+      "n_therm" : 10000,
+
+      "K" : 1.0
+    },
+  "log":
+    {
+      "level": 6
+    }
+}

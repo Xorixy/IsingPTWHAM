@@ -28,6 +28,9 @@ endif()
 add_executable(Ising
         source/main.cpp
         source/ising.cpp
+        source/rnd.cpp
+        source/io.cpp
+        source/stats.cpp
         # ...
         )
 
@@ -35,6 +38,7 @@ target_include_directories(Ising PRIVATE source)
 
 
 ### Find dependencies
+find_package(fmt        10.1.0  REQUIRED)
 find_package(h5pp       1.11.1  REQUIRED)
 find_package(Eigen3     3.4.0   REQUIRED)
 find_package(spdlog     1.13.0  REQUIRED)
@@ -42,12 +46,15 @@ find_package(pcg-cpp            REQUIRED)
 find_package(doctest    2.4.1   REQUIRED)
 find_package(nanobench  4.3.11  REQUIRED)
 find_package(CLI11      2.3.2   REQUIRED)
+find_package(nlohmann_json      3.11.3  REQUIRED)
+
 
 
 ### Create a helper target that links dependencies (this target can be used to build tests and benchmarks)
 add_library(ising-libs INTERFACE)
 
 # Link the libraries to the helper target
+target_link_libraries(ising-libs INTERFACE fmt::fmt)
 target_link_libraries(ising-libs INTERFACE h5pp::h5pp)
 target_link_libraries(ising-libs INTERFACE Eigen3::Eigen )
 target_link_libraries(ising-libs INTERFACE spdlog::spdlog )
@@ -55,6 +62,7 @@ target_link_libraries(ising-libs INTERFACE pcg-cpp::pcg-cpp )
 target_link_libraries(ising-libs INTERFACE doctest::doctest)
 target_link_libraries(ising-libs INTERFACE nanobench::nanobench)
 target_link_libraries(ising-libs INTERFACE CLI11::CLI11)
+target_link_libraries(ising-libs INTERFACE nlohmann_json::nlohmann_json)
 
 if(ISING_ENABLE_OPENMP)
     find_package(OpenMP COMPONENTS CXX REQUIRED)

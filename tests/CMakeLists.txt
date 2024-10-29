@@ -13,11 +13,13 @@ if(TARGET OpenMP::OpenMP_CXX)
     list(APPEND TESTS test-openmp)
 endif()
 
-list(APPEND TESTS terst-ising)
+list(APPEND TESTS test-ising)
 
 foreach (test ${TESTS})
-    add_executable(${test} ${test}.cpp)
+    add_executable(${test} ${test}.cpp ../source/ising.cpp
+            ../source/rnd.cpp
+            ../source/io.cpp)
     target_include_directories(${test} PRIVATE ${CMAKE_SOURCE_DIR}/source)
-    target_link_libraries(${test} PRIVATE cmt-libs)
+    target_link_libraries(${test} PRIVATE ising-libs)
     add_test(NAME ${test} WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${test})
 endforeach ()

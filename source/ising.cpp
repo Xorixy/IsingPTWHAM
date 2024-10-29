@@ -15,12 +15,56 @@ ising::State::State(const std::vector<int>& sizes)
     }
     m_spins = std::vector<unsigned char>(m_size, 0);
     m_neighbours = std::vector<unsigned char*>(2*m_dim*m_size);
+    m_neighbour_ids = std::vector<int>(2*m_dim*m_size);
     #ifndef NDEBUG
     for (const auto i : m_spins) {
         assert(!i);
     }
     #endif
     create_neighbours();
+    recalculate_energy();
+}
+
+void ising::State::set_spin(int point, unsigned char spin) {
+    m_spins[point] = spin;
+}
+
+
+void ising::State::recalculate_energy() noexcept {
+    m_energy = 0;
+    for (int ip = 0 ; ip < m_spins.size(); ip++) {
+        unsigned char spin = m_spins[ip];
+        for (int in = 0 ; in < 2*m_dim; in++) {
+            m_energy -= 2*(spin == *m_neighbours[2*m_dim*ip + in]) - 1;
+        }
+    }
+    assert(m_energy % 2 == 0);
+    m_energy /= 2;
+    m_energy += m_dim*m_size;
+}
+
+void ising::State::print_neighbours() const noexcept {
+    for (int ip = 0 ; ip < m_spins.size(); ip++) {
+        for (int in = 0 ; in < 2*m_dim; in++) {
+            fmt::print("{}, ", m_neighbour_ids[2*m_dim*ip + in]);
+        }
+        fmt::print("\n");
+    }
+}
+
+void ising::State::print_neighbour_spins() const noexcept {
+    for (int ip = 0 ; ip < m_spins.size(); ip++) {
+        for (int in = 0 ; in < 2*m_dim; in++) {
+            unsigned char spin = *m_neighbours[2*m_dim*ip + in];
+            if (spin == 1)
+                fmt::print("  1, ");
+            else if (spin == 0)
+                fmt::print(" -1, ");
+            else
+                fmt::print("  ?, ");
+        }
+        fmt::print("\n");
+    }
 }
 
 void ising::State::create_neighbours() {
@@ -47,6 +91,7 @@ void ising::State::create_neighbours() {
                     neighbour_int += multiplier_vec.at(ix) * neighbour_vec.at(ix);
                 }
                 int shift = m_dim * ( delta == -1);
+                m_neighbour_ids.at(2*m_dim*iter_int + shift + id) = neighbour_int;
                 m_neighbours.at(2*m_dim*iter_int + shift + id) = &m_spins.at(neighbour_int);
             }
         }
@@ -60,15 +105,16 @@ void ising::State::create_neighbours() {
     }
 }
 
-int ising::State::flip_random_spin(double K, pcg64& prng) noexcept {
-    int point_flip = rnd::uniform(0, m_dim-1, prng);
+int ising::State::flip_random_spin(const double K, pcg64& prng) noexcept {
+    int point_flip = rnd::uniform(0, m_size-1, prng);
     int e_diff = 0;
     unsigned char spin = m_spins[point_flip];
     for (int in = 0 ; in < 2*m_dim ; in++) {
         e_diff += 2*(spin == *m_neighbours[2*m_dim*point_flip + in]) - 1;
     }
-    if (sgn(K*e_diff) >= 0 || rnd::uniform(0.0, 1.0) < exp(K*e_diff)) {
+    if (sgn(-K*e_diff) >= 0 || rnd::uniform(0.0, 1.0) < exp(-K*e_diff)) {
         m_spins[point_flip] = 1 - m_spins[point_flip];
+        m_energy += e_diff;
         return e_diff;
     }
     return 0;
@@ -82,34 +128,50 @@ int ising::State::get_size() const noexcept {
     return m_size;
 }
 
+int ising::State::get_dim() const noexcept {
+    return m_dim;
+}
 
-ising::Ising::Ising(const std::vector<int> &sizes, double K, pcg64 &prng)
+void ising::State::print() const noexcept {
+    if (m_dim == 1) {
+        for (int is = 0 ; is < m_size ; is++) {
+            if (m_spins.at(is) == 1)
+                fmt::print("  1  ");
+            else if (m_spins.at(is) == 0)
+                fmt::print(" -1 ");
+            else
+                fmt::print("  ?  ");
+        }
+        fmt::print("\n");
+    }
+}
+
+ising::Ising::Ising(const std::vector<int> &sizes, const double K, const pcg64 &prng)
     : m_state(sizes)
     , m_K { K }
     , m_prng { prng }
-    , m_histogram(m_state.get_size())
+    , m_histogram((m_state.get_size() + 1)/2)
     , m_energy_time_series(0)
 {}
 
-/*
+
 ising::Ising::Ising(const std::vector<int> &sizes, double K, uint64_t seed)
     : m_state(sizes)
     , m_K{K}
-    , m_prng()
-    , m_histogram(1 + sizes.size()*m_state.get_size())
+    , m_histogram(sizes.size()*m_state.get_size()/2 + 1)
     , m_energy_time_series(0)
 {
     pcg_extras::seed_seq_from<pcg64> seq(seed);
     m_prng.seed(seq);
 }
-*/
 
 
-std::vector<int> ising::Ising::get_energy_time_series() const noexcept {
+
+std::vector<int> const& ising::Ising::get_energy_time_series() const noexcept {
     return m_energy_time_series;
 }
 
-std::vector<long long> ising::Ising::get_histogram() const noexcept {
+std::vector<long long> const& ising::Ising::get_histogram() const noexcept {
     return m_histogram;
 }
 
@@ -117,6 +179,9 @@ int ising::Ising::get_size() const noexcept {
     return m_state.get_size();
 }
 
+int ising::Ising::get_energy() const noexcept {
+    return m_state.get_energy();
+}
 
 void ising::Ising::swap_states(Ising &ising_one, Ising &ising_two) noexcept {
     assert(ising_one.get_size() == ising_two.get_size());
@@ -127,11 +192,32 @@ void ising::Ising::reserve_time_series(const int size) noexcept {
     m_energy_time_series.reserve(size);
 }
 
-void ising::Ising::run_sim_step(bool save_data) {
+void ising::Ising::run_sim_step(const bool save_data) noexcept {
     m_state.flip_random_spin(m_K, m_prng);
     if (save_data) {
         const int state_energy = m_state.get_energy();
-        m_histogram.at((state_energy + m_histogram.size())/2)++;
+        m_histogram.at(state_energy/2)++;
         m_energy_time_series.push_back(state_energy);
     }
+}
+
+void ising::Ising::run_sim(const long long int n_steps, const bool save_data) noexcept {
+    for (long long int _ = 0 ; _ < n_steps ; _++) {
+        run_sim_step(save_data);
+    }
+}
+
+void ising::Ising::print_state() const noexcept {
+    m_state.print();
+}
+void ising::Ising::print_neighbours() const noexcept {
+    m_state.print_neighbours();
+}
+
+void ising::Ising::print_neighbour_spins() const noexcept {
+    m_state.print_neighbour_spins();
+}
+
+void ising::Ising::set_spin(int point, unsigned char spin) {
+    m_state.set_spin(point, spin);
 }
