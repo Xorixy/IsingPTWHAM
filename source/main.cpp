@@ -33,7 +33,7 @@ void calculate_omega(std::vector<int> sizes, double K) {
 
 int main() {
     int size = 10;
-    int t_save = 10;
+    int t_save = size;
     std::vector<int> sizes = {size, size};
     ising::Ising is(sizes, 1.0, 0);
     for (int in = 0 ; in < 100000000 ; in++) {
@@ -42,5 +42,7 @@ int main() {
         else
             is.run_sim_step(false);
     }
+    auto time_series = is.get_energy_time_series();
+    fmt::print("Relaxation time: {}\n", stats::relaxation_time(time_series));
 }
 
