@@ -29,8 +29,8 @@ namespace stats {
             phi_t -= mean*mean;
             phi_t /= mean_sqr - mean*mean;
             fmt::print("{}\n", phi_t);
-            if (phi_t < 0)
-                break;
+            //if (t % static_cast<int>(round(0.01*t_frac*(series.size() - 1))) == 0) fmt::print("{}\n", t);
+            if (phi_t < 0) break;
             relaxation_time += phi_t;
         }
         return relaxation_time;
