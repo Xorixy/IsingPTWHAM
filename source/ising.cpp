@@ -223,7 +223,6 @@ void ising::Ising::set_spin(int point, unsigned char spin) {
 }
 
 void ising::Ising::save_data(const std::string &prefix) {
-    fmt::print("Hej från {}\n", prefix);
     auto hist_name = prefix + "/histogram";
     auto energy_name = prefix + "/energy";
 
@@ -233,4 +232,8 @@ void ising::Ising::save_data(const std::string &prefix) {
 
 void ising::Ising::save_data() {
     save_data(std::to_string(m_K));
+}
+
+double ising::Ising::get_K() const noexcept {
+    return m_K;
 }

@@ -58,12 +58,21 @@ void io::load_settings(const std::string& path) {
         if (std::optional<long long unsigned int> set = parse_setting<long long unsigned int>(j_constant, "n_therm"); set.has_value()) {
             settings::constants::n_therm = set.value();
         }
+        if (std::optional<long int> set = parse_setting<long int>(j_constant, "n_save"); set.has_value()) {
+            settings::constants::n_save = set.value();
+        }
 
-        if (std::optional<double> set = parse_setting<double>(j_constant, "K"); set.has_value()) {
-            settings::constants::K = set.value();
+        if (std::optional<double> set = parse_setting<double>(j_constant, "p_swap"); set.has_value()) {
+            settings::constants::p_swap = set.value();
         }
         if (std::vector<double> set = parse_array<double>(j_constant, "Ks"); !set.empty()) {
             settings::constants::Ks = set;
+        }
+    }
+    if (j_settings.contains("io")) {
+        auto j_log = j_settings["io"];
+        if (std::optional<std::string> set = parse_setting<std::string>(j_log, "outfile"); set.has_value()) {
+            settings::io::outfile = set.value();
         }
     }
     if (j_settings.contains("log")) {

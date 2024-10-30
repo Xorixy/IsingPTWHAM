@@ -36,10 +36,12 @@ void calculate_omega(std::vector<int> sizes, double K) {
 }
 
 int main() {
+    fmt::print("Starting simulation with {} threads\n", std::getenv("OMP_NUM_THREADS"));
+    io::load_settings(settings::io::settings_path);
     io::outfile = io::try_to_open_file(settings::io::outfile, false);
-    pt::ParallelIsing pi(settings::constants::sizes, settings::constants::Ks, 0.01, settings::random::seed);
-    pi.run_sim(100000, 100000, 1000);
+
+    pt::ParallelIsing pi(settings::constants::sizes, settings::constants::Ks, settings::constants::p_swap, settings::random::seed);
+    pi.run_sim(settings::constants::n_steps, settings::constants::n_therm, settings::constants::n_save);
     pi.save_data();
-    io::outfile.writeDataset<int>(1, "test");
 }
 

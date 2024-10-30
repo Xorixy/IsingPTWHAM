@@ -44,6 +44,7 @@ namespace ising {
             [[nodiscard]] std::vector<long long unsigned int> const& get_histogram() const noexcept;
             [[nodiscard]] int get_size() const noexcept;
             [[nodiscard]] int get_energy() const noexcept;
+            [[nodiscard]] double get_K() const noexcept;
 
             void reserve_time_series(int size) noexcept;
             void run_step(bool save_data) noexcept;
