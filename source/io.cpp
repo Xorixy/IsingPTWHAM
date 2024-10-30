@@ -5,6 +5,23 @@
 using json = nlohmann::json;
 
 template<typename T>
+std::vector<T> io::parse_array(const nlohmann::json &j, const std::string &name) {
+    std::vector<T> vec;
+    if (j.contains(name)) {
+        try {
+            for (auto& elem : j[name])
+                vec.push_back(elem);
+        } catch (std::exception &e) {
+            if (!settings::debug::allow_invalid_setting) {
+                const auto err_string = fmt::format("Invalid setting: {}. Error: {}", name, e.what());
+                throw std::runtime_error(err_string);
+            }
+        }
+    }
+    return vec;
+}
+
+template<typename T>
 std::optional<T> io::parse_setting(const nlohmann::json &j, const std::string &name) {
     if (j.contains(name)) {
         try {
@@ -32,16 +49,9 @@ void io::load_settings(const std::string& path) {
 
     if (j_settings.contains("constants")) {
         auto j_constant = j_settings["constants"];
-        if (std::optional<int> set = parse_setting<int>(j_constant, "size_x"); set.has_value()) {
-            settings::constants::size_x = set.value();
+        if (std::vector<int> set = parse_array<int>(j_constant, "sizes"); !set.empty()) {
+            settings::constants::sizes = set;
         }
-        if (std::optional<int> set = parse_setting<int>(j_constant, "size_y"); set.has_value()) {
-            settings::constants::size_y = set.value();
-        }
-        if (std::optional<int> set = parse_setting<int>(j_constant, "size_z"); set.has_value()) {
-            settings::constants::size_z = set.value();
-        }
-
         if (std::optional<long long unsigned int> set = parse_setting<long long unsigned int>(j_constant, "n_steps"); set.has_value()) {
             settings::constants::n_steps = set.value();
         }
@@ -52,6 +62,9 @@ void io::load_settings(const std::string& path) {
         if (std::optional<double> set = parse_setting<double>(j_constant, "K"); set.has_value()) {
             settings::constants::K = set.value();
         }
+        if (std::vector<double> set = parse_array<double>(j_constant, "Ks"); !set.empty()) {
+            settings::constants::Ks = set;
+        }
     }
     if (j_settings.contains("log")) {
         auto j_log = j_settings["log"];
@@ -59,6 +72,29 @@ void io::load_settings(const std::string& path) {
             settings::log::level = set.value();
         }
     }
+}
+
+h5pp::File io::try_to_open_file(const std::string& filename, bool readonly) {
+    int n_tries = 0;
+    h5pp::File file;
+    while(true) {
+        try {
+            if (!readonly) {
+                if (settings::io::replace_file) file = h5pp::File(filename, h5pp::FileAccess::REPLACE);
+                else file = h5pp::File(filename, h5pp::FileAccess::COLLISION_FAIL);
+            } else {
+                file = h5pp::File(filename, h5pp::FileAccess::READONLY);
+            }
+            break;
+        } catch (std::exception &e) {
+            fmt::print("Failed to open file with error: {}\n", e.what());
+            fmt::print("Waiting 3 seconds and trying again...\n");
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+            n_tries++;
+            if (n_tries >= 10) throw e;
+        }
+    }
+    return file;
 }
 
 /*

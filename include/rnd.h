@@ -33,4 +33,7 @@ namespace rnd {
             return dist(internal::prng);
         }
     }
+
+    [[nodiscard]] int next_event(double p, pcg64& prng);
+    [[nodiscard]] int next_event(double p);
 }

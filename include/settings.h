@@ -14,21 +14,18 @@ namespace settings {
 
     namespace constants {
         //System sizes
-        inline int size_x = 4;
-        inline int size_y = 4;
-        inline int size_z = 1;
-
-        inline std::vector<int> sizes;
+        inline std::vector<int> sizes = {5, 5};
 
         //Number of simulation/thermalization steps
         inline long long unsigned int n_steps = 10;
         inline long long unsigned int n_therm = 0;
 
         inline double K = 1.0;
+        inline std::vector<double> Ks = {0.0, 0.5, 1.0};
     }
 
     namespace io {
-        inline std::string outfile = "simulation.h5";
+        inline std::string outfile = "simulation_data.h5";
         inline std::string settings_path = "../../settings/settings.json";
         //Probably want to set it to false in the final code.
         inline bool replace_file = true;

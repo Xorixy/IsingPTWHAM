@@ -171,7 +171,7 @@ std::vector<int> const& ising::Ising::get_energy_time_series() const noexcept {
     return m_energy_time_series;
 }
 
-std::vector<long long> const& ising::Ising::get_histogram() const noexcept {
+std::vector<long long unsigned int> const& ising::Ising::get_histogram() const noexcept {
     return m_histogram;
 }
 
@@ -192,7 +192,7 @@ void ising::Ising::reserve_time_series(const int size) noexcept {
     m_energy_time_series.reserve(size);
 }
 
-void ising::Ising::run_sim_step(const bool save_data) noexcept {
+void ising::Ising::run_step(const bool save_data) noexcept {
     m_state.flip_random_spin(m_K, m_prng);
     if (save_data) {
         const int state_energy = m_state.get_energy();
@@ -201,9 +201,9 @@ void ising::Ising::run_sim_step(const bool save_data) noexcept {
     }
 }
 
-void ising::Ising::run_sim(const long long int n_steps, const bool save_data) noexcept {
+void ising::Ising::run_step(const long long int n_steps, const bool save_data) noexcept {
     for (long long int _ = 0 ; _ < n_steps ; _++) {
-        run_sim_step(save_data);
+        run_step(save_data);
     }
 }
 
@@ -220,4 +220,17 @@ void ising::Ising::print_neighbour_spins() const noexcept {
 
 void ising::Ising::set_spin(int point, unsigned char spin) {
     m_state.set_spin(point, spin);
+}
+
+void ising::Ising::save_data(const std::string &prefix) {
+    fmt::print("Hej från {}\n", prefix);
+    auto hist_name = prefix + "/histogram";
+    auto energy_name = prefix + "/energy";
+
+    io::save_vector(m_histogram, hist_name);
+    io::save_vector(m_energy_time_series, energy_name);
+}
+
+void ising::Ising::save_data() {
+    save_data(std::to_string(m_K));
 }

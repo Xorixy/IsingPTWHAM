@@ -2,11 +2,15 @@
 #include <complex>
 #include <fmt/ranges.h>
 #include "../include/stats.h"
+#include "../include/pt.h"
+#include "../include/io.h"
+#include <nlohmann/json.hpp>
+#include "../include/rnd.h"
 
 void calculate_omega(std::vector<int> sizes, double K) {
     ising::Ising is(sizes, K, 0);
     for (int in = 0 ; in < 1000000 ; in++) {
-        is.run_sim_step(true);
+        is.run_step(true);
     }
     auto hist = is.get_histogram();
     //fmt::print("{}\n", fmt::join(hist, ", "));
@@ -32,17 +36,10 @@ void calculate_omega(std::vector<int> sizes, double K) {
 }
 
 int main() {
-    int size = 10;
-    int t_save = size;
-    std::vector<int> sizes = {size, size};
-    ising::Ising is(sizes, 1.0, 0);
-    for (int in = 0 ; in < 100000000 ; in++) {
-        if (in % t_save == 0)
-            is.run_sim_step(true);
-        else
-            is.run_sim_step(false);
-    }
-    auto time_series = is.get_energy_time_series();
-    fmt::print("Relaxation time: {}\n", stats::relaxation_time(time_series));
+    io::outfile = io::try_to_open_file(settings::io::outfile, false);
+    pt::ParallelIsing pi(settings::constants::sizes, settings::constants::Ks, 0.01, settings::random::seed);
+    pi.run_sim(100000, 100000, 1000);
+    pi.save_data();
+    io::outfile.writeDataset<int>(1, "test");
 }
 

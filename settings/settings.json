@@ -6,14 +6,12 @@
 
   "constants" :
     {
-      "size_x" : 3,
-      "size_y" : 1,
-      "size_z" : 1,
+      "sizes" : [3, 3],
 
       "n_steps" : 1000000000,
       "n_therm" : 10000,
 
-      "K" : 1.0
+      "Ks" : [0.0, 0.5, 1.0]
     },
   "log":
     {

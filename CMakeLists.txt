@@ -31,6 +31,7 @@ add_executable(Ising
         source/rnd.cpp
         source/io.cpp
         source/stats.cpp
+        source/pt.cpp
         # ...
         )
 

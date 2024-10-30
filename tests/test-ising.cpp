@@ -6,7 +6,7 @@ int main(){
     ising::Ising is(sizes, 1.0, 1);
     is.print_state();
     for (int in = 0 ; in < 10 ; in++) {
-        is.run_sim_step(false);
+        is.run_step(false);
         is.print_state();
     }
 }
