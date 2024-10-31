@@ -34,6 +34,6 @@ namespace rnd {
         }
     }
 
-    [[nodiscard]] int next_event(double p, pcg64& prng);
-    [[nodiscard]] int next_event(double p);
+    [[nodiscard]] long long unsigned int next_event(double p, pcg64& prng);
+    [[nodiscard]] long long unsigned int next_event(double p);
 }

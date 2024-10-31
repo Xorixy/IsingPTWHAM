@@ -58,7 +58,7 @@ void io::load_settings(const std::string& path) {
         if (std::optional<long long unsigned int> set = parse_setting<long long unsigned int>(j_constant, "n_therm"); set.has_value()) {
             settings::constants::n_therm = set.value();
         }
-        if (std::optional<long int> set = parse_setting<long int>(j_constant, "n_save"); set.has_value()) {
+        if (std::optional<long long unsigned int> set = parse_setting<long long unsigned int>(j_constant, "n_save"); set.has_value()) {
             settings::constants::n_save = set.value();
         }
 
@@ -88,12 +88,7 @@ h5pp::File io::try_to_open_file(const std::string& filename, bool readonly) {
     h5pp::File file;
     while(true) {
         try {
-            if (!readonly) {
-                if (settings::io::replace_file) file = h5pp::File(filename, h5pp::FileAccess::REPLACE);
-                else file = h5pp::File(filename, h5pp::FileAccess::COLLISION_FAIL);
-            } else {
-                file = h5pp::File(filename, h5pp::FileAccess::READONLY);
-            }
+            file = h5pp::File(filename, h5pp::FileAccess::READWRITE);
             break;
         } catch (std::exception &e) {
             fmt::print("Failed to open file with error: {}\n", e.what());

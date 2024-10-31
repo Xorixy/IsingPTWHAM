@@ -11,14 +11,17 @@ void rnd::seed(std::optional<uint64_t> number) {
     }
 }
 
-int rnd::next_event(const double p, pcg64 &prng) {
+long long unsigned int rnd::next_event(const double p, pcg64 &prng) {
     assert(p > 0.0 && p < 1.0);
     const double P = uniform(0.0, 1.0, prng);
     const double n = std::log(1.0 - P)/std::log(1.0 - p);
-    return 1 + static_cast<int>(n);
+    if (n + 1 > std::numeric_limits<long long unsigned int>::max()) {
+        return std::numeric_limits<long long unsigned int>::max();
+    }
+    return static_cast<long long unsigned int>(n + 1);
 }
 
-int rnd::next_event(const double p) {
+long long unsigned int rnd::next_event(const double p) {
     return next_event(p, internal::prng);
 }
 

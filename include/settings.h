@@ -19,7 +19,7 @@ namespace settings {
         //Number of simulation/thermalization steps
         inline long long unsigned int n_steps = 10;
         inline long long unsigned int n_therm = 1;
-        inline long int n_save                = 1;
+        inline long long unsigned int n_save  = 1;
 
         inline double p_swap = 0.1;
         inline std::vector<double> Ks = {0.0, 0.5, 1.0};

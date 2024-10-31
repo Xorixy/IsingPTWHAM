@@ -16,6 +16,7 @@ namespace ising {
             int m_size { 0 };
             int m_dim;
             int m_energy { 0 };
+            int m_magnetization;
 
             void create_neighbours();
         public:
@@ -24,19 +25,24 @@ namespace ising {
             [[nodiscard]] int get_energy() const noexcept;
             [[nodiscard]] int get_size() const noexcept;
             [[nodiscard]] int get_dim() const noexcept;
+            [[nodiscard]] int get_magnetization() const noexcept;
             void print() const noexcept;
             void recalculate_energy() noexcept;
             void print_neighbours() const noexcept;
             void print_neighbour_spins() const noexcept;
             void set_spin(int point, unsigned char spin);
+
     };
     class Ising {
         private:
             State m_state;
             double m_K;
             pcg64 m_prng;
-            std::vector<long long unsigned int> m_histogram;
+            std::vector<long long unsigned int> m_energy_histogram;
             std::vector<int> m_energy_time_series;
+            std::vector<long long unsigned int> m_magnetization_histogram;
+            std::vector<int> m_magnetization_time_series;
+            std::vector<double> m_K_time_series;
         public:
             Ising(const std::vector<int>& sizes, double K, const pcg64 & prng);
             Ising(const std::vector<int>& sizes, double K, uint64_t seed);
@@ -48,14 +54,16 @@ namespace ising {
 
             void reserve_time_series(int size) noexcept;
             void run_step(bool save_data) noexcept;
-            void run_step(long long int n_steps, bool save_data) noexcept;
+            void run_step(long long unsigned int n_steps, bool save_data) noexcept;
 
             static void swap_states(Ising& ising_one, Ising& ising_two) noexcept;
+
             void print_state() const noexcept;
             void print_neighbours() const noexcept;
             void print_neighbour_spins() const noexcept;
             void set_spin(int point, unsigned char spin);
             void save_data(const std::string& prefix);
             void save_data();
+            void set_K(double K);
     };
 }

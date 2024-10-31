@@ -12,7 +12,7 @@
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
         "ISING_ENABLE_OPENMP": "TRUE",
-        "ISING_ENABLE_MPI": "FALSE",
+        "ISING_ENABLE_MPI": "TRUE",
         "ISING_BUILD_TESTS": "TRUE",
         "ISING_BUILD_BENCH": "FALSE",
         "ISING_BUILD_EXAMPLES": "FALSE",

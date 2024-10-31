@@ -32,6 +32,7 @@ add_executable(Ising
         source/io.cpp
         source/stats.cpp
         source/pt.cpp
+        source/mpi_pt.cpp
         # ...
         )
 
