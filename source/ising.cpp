@@ -210,11 +210,11 @@ void ising::Ising::run_step(const bool save_data) noexcept {
     m_state.flip_random_spin(m_K, m_prng);
     if (save_data) {
         const int state_energy = m_state.get_energy();
-        m_energy_histogram.at(state_energy/2)++;
+        //m_energy_histogram.at(state_energy/2)++;
         m_energy_time_series.push_back(state_energy);
 
         const int state_magnetization = m_state.get_magnetization();
-        m_magnetization_histogram.at((state_magnetization + m_state.get_size())/2)++;
+        //m_magnetization_histogram.at((state_magnetization + m_state.get_size())/2)++;
         m_magnetization_time_series.push_back(state_magnetization);
 
         m_K_time_series.push_back(m_K);

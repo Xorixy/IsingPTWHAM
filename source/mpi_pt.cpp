@@ -17,8 +17,6 @@ void mpi_pt::open_file() {
 
 
 void mpi_pt::try_swap(ising::Ising & local_ising, std::vector<int>& world_order) {
-    int world_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     if (world_order.size() < 2) return;
 
     std::vector<int> energies(world_order.size(), 0);
@@ -34,11 +32,15 @@ void mpi_pt::try_swap(ising::Ising & local_ising, std::vector<int>& world_order)
     }
 
     if (world_rank == 0) {
+        //fmt::print("Trying to swap\n");
         int n_swap = rnd::uniform(0, static_cast<int>(world_order.size() - 2));
         int delta_e = energies[world_order[n_swap]] - energies[world_order[n_swap + 1]];
         double delta_K = settings::constants::Ks[n_swap] - settings::constants::Ks[n_swap + 1];
-        if (rnd::uniform(0.0, 1.0) < exp(delta_K * delta_K)) {
+        if (rnd::uniform(0.0, 1.0) < exp(delta_K * delta_e)) {
+            //fmt::print("Swap successful\n");
             std::swap(world_order[n_swap], world_order[n_swap + 1]);
+        } else {
+            //fmt::print("Swap failed\n");
         }
         for (int i = 0; i < world_order.size(); i++) {
             if (world_order[i] == 0) {
@@ -52,6 +54,7 @@ void mpi_pt::try_swap(ising::Ising & local_ising, std::vector<int>& world_order)
         MPI_Recv(&new_K, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         local_ising.set_K(new_K);
     }
+    //if (world_rank == 0) fmt::print("Finished swap\n");
 }
 
 void mpi_pt::update_swap_counter(unsigned long long int &swap_counter) {
@@ -64,7 +67,7 @@ void mpi_pt::update_swap_counter(unsigned long long int &swap_counter) {
 void mpi_pt::run_thermalization(ising::Ising &local_ising, std::vector<int> &world_order, long long unsigned int &swap_counter) {
     long long unsigned int n_therm = settings::constants::n_therm;
 
-    while (n_therm >= swap_counter) {
+    while (n_therm >= swap_counter && n_therm != 0) {
         n_therm -= swap_counter;
         local_ising.run_step(swap_counter, false);
         try_swap(local_ising, world_order);
@@ -87,18 +90,22 @@ void mpi_pt::run_simulation(ising::Ising &local_ising, std::vector<int> &world_o
         swap_counter -= n_steps;
         local_ising.run_step(n_steps, true);
     } else {
-        while (n_steps >= n_save) {
+        while (n_steps >= n_save && n_steps != 0) {
             n_steps -= n_save;
             while (n_save >= swap_counter) {
                 n_save -= swap_counter;
                 local_ising.run_step(swap_counter, false);
                 try_swap(local_ising, world_order);
                 update_swap_counter(swap_counter);
+                //if (world_rank == 0) fmt::print("New swap counter: {}. N_save: {}. N_steps: {}.\n", swap_counter, n_save, n_steps);
             }
-            local_ising.run_step(n_save - 1, false);
+            //if (world_rank == 0) fmt::print("Hej\n");
+            local_ising.run_step((n_save > 0)*(n_save - 1), false);
+            //if (world_rank == 0) fmt::print("Rå\n");
             local_ising.run_step(1, true);
             swap_counter -= n_save;
             n_save = settings::constants::n_save;
+            //if (world_rank == 0) fmt::print("Då\n");
         }
     }
 }
