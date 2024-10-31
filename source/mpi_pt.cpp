@@ -1,5 +1,21 @@
 #include "../include/mpi_pt.h"
 
+void mpi_pt::open_file() {
+    if (world_rank == 0) {
+        io::outfile = io::try_to_open_file(settings::io::outfile, true);
+        settings::io::outfile = io::outfile.getFilePath();
+    }
+    int outfile_size = settings::io::outfile.size();
+    MPI_Bcast(&outfile_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    if (world_rank != 0)
+        settings::io::outfile.resize(outfile_size);
+    MPI_Bcast(const_cast<char*>(settings::io::outfile.data()), outfile_size, MPI_CHAR, 0, MPI_COMM_WORLD);
+    if (world_rank != 0) {
+        io::outfile = io::try_to_open_file(settings::io::outfile, false);
+    }
+}
+
+
 void mpi_pt::try_swap(ising::Ising & local_ising, std::vector<int>& world_order) {
     int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
@@ -47,6 +63,7 @@ void mpi_pt::update_swap_counter(unsigned long long int &swap_counter) {
 
 void mpi_pt::run_thermalization(ising::Ising &local_ising, std::vector<int> &world_order, long long unsigned int &swap_counter) {
     long long unsigned int n_therm = settings::constants::n_therm;
+
     while (n_therm >= swap_counter) {
         n_therm -= swap_counter;
         local_ising.run_step(swap_counter, false);
@@ -71,6 +88,7 @@ void mpi_pt::run_simulation(ising::Ising &local_ising, std::vector<int> &world_o
         local_ising.run_step(n_steps, true);
     } else {
         while (n_steps >= n_save) {
+            n_steps -= n_save;
             while (n_save >= swap_counter) {
                 n_save -= swap_counter;
                 local_ising.run_step(swap_counter, false);
@@ -92,6 +110,8 @@ void mpi_pt::run_mpi_simulation() {
 
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
+    open_file();
+
     std::vector<int> world_order(world_size, 0);
     if(world_rank == 0) {
         for(int i = 0; i < world_size; i++) { world_order[i] = i; }
@@ -101,8 +121,13 @@ void mpi_pt::run_mpi_simulation() {
     ising::Ising local_ising(settings::constants::sizes, K, settings::random::seed + world_rank);
 
     long long unsigned int swap_counter = 0;
+    update_swap_counter(swap_counter);
+    fmt::print("Process {} starting thermalization.\n", world_rank);
     run_thermalization(local_ising, world_order, swap_counter);
+    fmt::print("Process {} thermalization done.\nStarting simulation.\n", world_rank);
     run_simulation(local_ising, world_order, swap_counter);
+    fmt::print("Process {} simulation done.\n", world_rank);
+    MPI_Barrier(MPI_COMM_WORLD);
     save_data(local_ising);
 }
 
@@ -110,7 +135,20 @@ void mpi_pt::save_data(ising::Ising &local_ising) {
     for (int rank = 0; rank < world_size; ++rank) {
         if(world_rank == rank) {
             fmt::print("Process {} saving data.\n", world_rank);
-            local_ising.save_data(fmt::format("{}", rank));
+            int n_tries = 0;
+            while(true) {
+                try {
+                    local_ising.save_data(fmt::format("{}", rank));
+                    break;
+                } catch (std::exception &e) {
+                    fmt::print("Failed to save data with error: {}\n", e.what());
+                    fmt::print("Waiting 3 seconds and trying again...\n");
+                    std::this_thread::sleep_for(std::chrono::seconds(3));
+                    n_tries++;
+                    if (n_tries >= 10) throw e;
+                }
+            }
+            fmt::print("Process {} data saved.\n", world_rank);
         }
         MPI_Barrier(MPI_COMM_WORLD);
     }

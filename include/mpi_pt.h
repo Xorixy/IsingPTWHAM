@@ -3,8 +3,10 @@
 #include <mpi/mpi.h>
 
 namespace mpi_pt {
-    inline int world_rank = 0;
-    inline int world_size = 0;
+    inline int world_rank = -1;
+    inline int world_size = -1;
+
+    void open_file();
 
     void try_swap(ising::Ising & local_ising, std::vector<int>& world_order);
 

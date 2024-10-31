@@ -19,7 +19,6 @@ void run_single_core() {
 int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
     io::load_settings(settings::io::settings_path);
-    io::outfile = io::try_to_open_file(settings::io::outfile, false);
     pcg_extras::seed_seq_from<pcg64> seq(settings::random::seed);
     rnd::internal::prng.seed(seq);
     mpi_pt::run_mpi_simulation();

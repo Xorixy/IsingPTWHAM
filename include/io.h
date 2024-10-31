@@ -25,5 +25,11 @@ namespace io {
         io::outfile.writeDataset<std::vector<T>>(vector, name);
     }
 
-    h5pp::File try_to_open_file(const std::string& filename, bool readonly);
+    template <typename T>
+    void save_scalar(T & scalar, const std::string& name) {
+        io::outfile.writeDataset<T>(scalar, name);
+    }
+
+    h5pp::File try_to_open_file(const std::string& filename, bool rename);
+    void clear_old_results(const std::string& name);
 }

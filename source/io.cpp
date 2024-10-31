@@ -83,12 +83,16 @@ void io::load_settings(const std::string& path) {
     }
 }
 
-h5pp::File io::try_to_open_file(const std::string& filename, bool readonly) {
+h5pp::File io::try_to_open_file(const std::string& filename, const bool rename) {
     int n_tries = 0;
     h5pp::File file;
     while(true) {
         try {
-            file = h5pp::File(filename, h5pp::FileAccess::READWRITE);
+            if (rename) {
+                file = h5pp::File(filename, h5pp::FileAccess::RENAME);
+            } else {
+                file = h5pp::File(filename, h5pp::FileAccess::READWRITE);
+            }
             break;
         } catch (std::exception &e) {
             fmt::print("Failed to open file with error: {}\n", e.what());
