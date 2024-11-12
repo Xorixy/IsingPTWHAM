@@ -217,9 +217,13 @@ void mpi_pt::save_data(ising::Ising &local_ising) {
 }
 
 void mpi_pt::init_Ks() {
+    if (world_size == settings::constants::Ks.size()) {
+        return;
+    }
     std::vector<double> Ks(world_size, 0);
     if (world_size == 1) {
         Ks[0] = settings::constants::K_min;
+        settings::constants::Ks = Ks;
     }
     else {
         for (int i = 0 ; i < world_size ; i++) {
