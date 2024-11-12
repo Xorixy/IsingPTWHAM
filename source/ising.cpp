@@ -158,9 +158,7 @@ ising::Ising::Ising(const std::vector<int> &sizes, const double K, const pcg64 &
     : m_state(sizes)
     , m_K { K }
     , m_prng { prng }
-    , m_energy_histogram((m_state.get_size() + 1)/2)
     , m_energy_time_series(0)
-    , m_magnetization_histogram(m_state.get_size() + 1)
     , m_magnetization_time_series(0)
 {}
 
@@ -168,9 +166,7 @@ ising::Ising::Ising(const std::vector<int> &sizes, const double K, const pcg64 &
 ising::Ising::Ising(const std::vector<int> &sizes, double K, uint64_t seed)
     : m_state(sizes)
     , m_K{K}
-    , m_energy_histogram(sizes.size()*m_state.get_size()/2 + 1)
     , m_energy_time_series(0)
-    , m_magnetization_histogram(m_state.get_size() + 1)
     , m_magnetization_time_series(0)
 {
     pcg_extras::seed_seq_from<pcg64> seq(seed);
@@ -181,10 +177,6 @@ ising::Ising::Ising(const std::vector<int> &sizes, double K, uint64_t seed)
 
 std::vector<int> const& ising::Ising::get_energy_time_series() const noexcept {
     return m_energy_time_series;
-}
-
-std::vector<long long unsigned int> const& ising::Ising::get_histogram() const noexcept {
-    return m_energy_histogram;
 }
 
 int ising::Ising::get_size() const noexcept {
@@ -210,11 +202,9 @@ void ising::Ising::run_step(const bool save_data) noexcept {
     m_state.flip_random_spin(m_K, m_prng);
     if (save_data) {
         const int state_energy = m_state.get_energy();
-        //m_energy_histogram.at(state_energy/2)++;
         m_energy_time_series.push_back(state_energy);
 
         const int state_magnetization = m_state.get_magnetization();
-        //m_magnetization_histogram.at((state_magnetization + m_state.get_size())/2)++;
         m_magnetization_time_series.push_back(state_magnetization);
 
         m_K_time_series.push_back(m_K);
@@ -243,15 +233,11 @@ void ising::Ising::set_spin(int point, unsigned char spin) {
 }
 
 void ising::Ising::save_data(const std::string &prefix) {
-    auto energy_hist_name = prefix + "/energy_histogram";
     auto energy_series_name = prefix + "/energy_series";
-    auto magnetization_hist_name = prefix + "/magnetization_histogram";
     auto magnetization_series_name = prefix + "/magnetization_series";
     auto K_series_name = prefix + "/K_series";
 
-    io::save_vector(m_energy_histogram, energy_hist_name);
     io::save_vector(m_energy_time_series, energy_series_name);
-    io::save_vector(m_magnetization_histogram, magnetization_hist_name);
     io::save_vector(m_magnetization_time_series, magnetization_series_name);
     io::save_vector(m_K_time_series, K_series_name);
 }

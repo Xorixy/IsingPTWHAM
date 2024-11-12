@@ -38,16 +38,13 @@ namespace ising {
             State m_state;
             double m_K;
             pcg64 m_prng;
-            std::vector<long long unsigned int> m_energy_histogram;
             std::vector<int> m_energy_time_series;
-            std::vector<long long unsigned int> m_magnetization_histogram;
             std::vector<int> m_magnetization_time_series;
             std::vector<double> m_K_time_series;
         public:
             Ising(const std::vector<int>& sizes, double K, const pcg64 & prng);
             Ising(const std::vector<int>& sizes, double K, uint64_t seed);
             [[nodiscard]] std::vector<int> const& get_energy_time_series() const noexcept;
-            [[nodiscard]] std::vector<long long unsigned int> const& get_histogram() const noexcept;
             [[nodiscard]] int get_size() const noexcept;
             [[nodiscard]] int get_energy() const noexcept;
             [[nodiscard]] double get_K() const noexcept;
