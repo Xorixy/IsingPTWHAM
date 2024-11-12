@@ -23,6 +23,9 @@ namespace settings {
 
         inline double p_swap = 0.1;
         inline std::vector<double> Ks = {0.0, 0.5, 1.0};
+        inline double K_max = 0.5;
+        inline double K_min = 0.1;
+        inline double K_change_fraction = 0.01;
     }
 
     namespace io {

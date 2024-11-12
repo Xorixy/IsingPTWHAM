@@ -4,18 +4,18 @@ import h5py as h5
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy as scp
-from numpy.f2py.auxfuncs import throw_error
 
 
-filename = "../data/out.h5"
+
+filename = "../data/big-swap.h5"
 
 size = 100*100
 
 time_series_start = 0
 time_series_end = 1000
 
-n_e_bins = 100
-n_m_bins = 100
+n_e_bins = 300
+n_m_bins = 300
 
 
 f = h5.File(filename, 'r')
@@ -45,6 +45,7 @@ for key in f.keys():
         if not Ks.__contains__(K):
             Ks = np.append(Ks, K)
 
+print(Ks)
 if len(Ks) != n_processes:
     raise exception("Error, number of distinct Ks not equal to number of processes.")
 
@@ -74,12 +75,12 @@ min_mag = np.min(magnetization_time_series)
 
 for ik in range(n_processes):
     K = Ks[ik]
-    e_ax.plot(energy_time_series[ik][time_series_start:time_series_end], label = Ks[ik])
-    m_ax.plot(magnetization_time_series[ik][time_series_start:time_series_end], label = Ks[ik])
-    e_hist = np.histogram(energy_time_series[ik], bins=n_e_bins, range=(min_energy, max_energy))
-    m_hist = np.histogram(magnetization_time_series[ik], bins=n_m_bins, range=(min_mag, max_mag))
-    e_hist_ax.stairs(*e_hist, label = Ks[ik])
-    m_hist_ax.stairs(*m_hist, label = Ks[ik])
+    #e_ax.plot(energy_time_series[ik][time_series_start:time_series_end], label = Ks[ik])
+    #m_ax.plot(magnetization_time_series[ik][time_series_start:time_series_end], label = Ks[ik])
+    #e_hist = np.histogram(energy_time_series[ik], bins=n_e_bins, range=(min_energy, max_energy))
+    #m_hist = np.histogram(magnetization_time_series[ik], bins=n_m_bins, range=(min_mag, max_mag))
+    #e_hist_ax.stairs(*e_hist, label = Ks[ik])
+    #m_hist_ax.stairs(*m_hist, label = Ks[ik])
 
 
 
@@ -108,7 +109,7 @@ m_hist_ax.set_xlabel('Magnetization')
 m_hist_ax.set_ylabel('Number of occurrences')
 m_hist_ax.legend()
 
-plt.show()
+#plt.show()
 
 
 

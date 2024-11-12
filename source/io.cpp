@@ -68,6 +68,15 @@ void io::load_settings(const std::string& path) {
         if (std::vector<double> set = parse_array<double>(j_constant, "Ks"); !set.empty()) {
             settings::constants::Ks = set;
         }
+        if (std::optional<double> set = parse_setting<double>(j_constant, "K_max"); set.has_value()) {
+            settings::constants::K_max = set.value();
+        }
+        if (std::optional<double> set = parse_setting<double>(j_constant, "K_min"); set.has_value()) {
+            settings::constants::K_min = set.value();
+        }
+        if (std::optional<double> set = parse_setting<double>(j_constant, "K_change_fraction"); set.has_value()) {
+            settings::constants::K_change_fraction = set.value();
+        }
     }
     if (j_settings.contains("io")) {
         auto j_log = j_settings["io"];

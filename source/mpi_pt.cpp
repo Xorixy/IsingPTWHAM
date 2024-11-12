@@ -39,8 +39,6 @@ void mpi_pt::try_swap(ising::Ising & local_ising, std::vector<int>& world_order)
         if (rnd::uniform(0.0, 1.0) < exp(delta_K * delta_e)) {
             //fmt::print("Swap successful\n");
             std::swap(world_order[n_swap], world_order[n_swap + 1]);
-        } else {
-            //fmt::print("Swap failed\n");
         }
         for (int i = 0; i < world_order.size(); i++) {
             if (world_order[i] == 0) {
@@ -54,7 +52,6 @@ void mpi_pt::try_swap(ising::Ising & local_ising, std::vector<int>& world_order)
         MPI_Recv(&new_K, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         local_ising.set_K(new_K);
     }
-    //if (world_rank == 0) fmt::print("Finished swap\n");
 }
 
 void mpi_pt::update_swap_counter(unsigned long long int &swap_counter) {
@@ -77,7 +74,7 @@ void mpi_pt::run_thermalization(ising::Ising &local_ising, std::vector<int> &wor
     local_ising.run_step(n_therm, false);
 }
 
-void mpi_pt::run_simulation(ising::Ising &local_ising, std::vector<int> &world_order, long long unsigned int &swap_counter) {
+void mpi_pt::run_production(ising::Ising &local_ising, std::vector<int> &world_order, long long unsigned int &swap_counter) {
     long long unsigned int n_steps = settings::constants::n_steps;
     long long unsigned int n_save = settings::constants::n_save;
     if (n_save == 1) {
@@ -97,20 +94,76 @@ void mpi_pt::run_simulation(ising::Ising &local_ising, std::vector<int> &world_o
                 local_ising.run_step(swap_counter, false);
                 try_swap(local_ising, world_order);
                 update_swap_counter(swap_counter);
-                //if (world_rank == 0) fmt::print("New swap counter: {}. N_save: {}. N_steps: {}.\n", swap_counter, n_save, n_steps);
             }
-            //if (world_rank == 0) fmt::print("Hej\n");
             local_ising.run_step((n_save > 0)*(n_save - 1), false);
-            //if (world_rank == 0) fmt::print("Rå\n");
             local_ising.run_step(1, true);
             swap_counter -= n_save;
             n_save = settings::constants::n_save;
-            //if (world_rank == 0) fmt::print("Då\n");
+        }
+    }
+}
+
+void mpi_pt::save_direction_numbers(WalkDirection &dir, std::vector<int>& world_order, std::vector<int> &n_up, std::vector<int> &n_down) {
+    int dir_int = 0;
+    if (dir == WalkDirection::up) {
+        dir_int = 1;
+    } else if (dir == WalkDirection::down) {
+        dir_int = -1;
+    }
+    std::vector<int> dirs;
+    if (world_rank == 0) {
+        dirs = std::vector(world_size, 0);
+    }
+    MPI_Gather(&dir_int, 1, MPI_INT, &dirs[0], 1, MPI_INT, 0, MPI_COMM_WORLD);
+    if (world_rank == 0) {
+        for (int i = 0; i < dirs.size(); i++) {
+            if (dirs[world_order[i]] == 1) {
+                n_up[i]++;
+            } else if (dirs[world_order[i]] == -1) {
+                n_down[i]++;
+            }
         }
     }
 }
 
 
+void mpi_pt::run_equilibration(ising::Ising &local_ising, std::vector<int> &world_order, long long unsigned int &swap_counter) {
+    long long unsigned int n_therm = settings::constants::n_therm;
+    WalkDirection dir = WalkDirection::none;
+    if (local_ising.get_K() == settings::constants::K_min) {
+        dir = WalkDirection::up;
+    } else if (local_ising.get_K() == settings::constants::K_max) {
+        dir = WalkDirection::down;
+    }
+
+    std::vector<int> n_up(world_size, 0);
+    std::vector<int> n_down(world_size, 0);
+    int n_equilibration_runs = 1;
+    for (int _ = 0 ; _ < n_equilibration_runs; _++) {
+        n_therm = settings::constants::n_therm;
+        while (n_therm >= swap_counter && n_therm != 0) {
+            n_therm -= swap_counter;
+            local_ising.run_step(swap_counter, false);
+            save_direction_numbers(dir, world_order, n_up, n_down);
+            try_swap(local_ising, world_order);
+            if (local_ising.get_K() == settings::constants::K_min) {
+                dir = WalkDirection::up;
+            } else if (local_ising.get_K() == settings::constants::K_max) {
+                dir = WalkDirection::down;
+            }
+            update_swap_counter(swap_counter);
+        }
+        swap_counter -= n_therm;
+        local_ising.run_step(n_therm, false);
+    }
+    if (world_rank == 0) {
+        std::vector<double> f(world_size, 0.0);
+        for (int i = 0 ; i < world_size ; i++) {
+            f[i] = n_up[i]*1.0/(n_up[i] + n_down[i]);
+        }
+        fmt::print("f : {}\n", fmt::join(f, ","));
+    }
+}
 
 void mpi_pt::run_mpi_simulation() {
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -123,20 +176,22 @@ void mpi_pt::run_mpi_simulation() {
     if(world_rank == 0) {
         for(int i = 0; i < world_size; i++) { world_order[i] = i; }
     }
-    const std::vector<double> Ks = settings::constants::Ks;
-    double K = Ks[world_rank];
+    init_Ks();
+
+    double K = settings::constants::Ks[world_rank];
     ising::Ising local_ising(settings::constants::sizes, K, settings::random::seed + world_rank);
 
     long long unsigned int swap_counter = 0;
     update_swap_counter(swap_counter);
     fmt::print("Process {} starting thermalization.\n", world_rank);
-    run_thermalization(local_ising, world_order, swap_counter);
+    run_equilibration(local_ising, world_order, swap_counter);
     fmt::print("Process {} thermalization done.\nStarting simulation.\n", world_rank);
-    run_simulation(local_ising, world_order, swap_counter);
+    run_production(local_ising, world_order, swap_counter);
     fmt::print("Process {} simulation done.\n", world_rank);
     MPI_Barrier(MPI_COMM_WORLD);
     save_data(local_ising);
 }
+
 
 void mpi_pt::save_data(ising::Ising &local_ising) {
     for (int rank = 0; rank < world_size; ++rank) {
@@ -158,5 +213,29 @@ void mpi_pt::save_data(ising::Ising &local_ising) {
             fmt::print("Process {} data saved.\n", world_rank);
         }
         MPI_Barrier(MPI_COMM_WORLD);
+    }
+}
+
+void mpi_pt::init_Ks() {
+    std::vector<double> Ks(world_size, 0);
+    if (world_size == 1) {
+        Ks[0] = settings::constants::K_min;
+    }
+    else {
+        for (int i = 0 ; i < world_size ; i++) {
+            Ks[i] = settings::constants::K_min + (settings::constants::K_max - settings::constants::K_min)/(world_size - 1)*i;
+        }
+        Ks[world_size - 1] = settings::constants::K_max;
+        settings::constants::Ks = Ks;
+        return;
+        double K_min = settings::constants::K_min;
+        double K_max = settings::constants::K_max;
+        double R = pow(K_max/K_min, 1.0/(world_size - 1));
+        for (int k = 0 ; k < world_size; k++) {
+            Ks[world_size - k - 1] = K_max + K_min - K_min*pow(R, k);
+        }
+        Ks[0] = settings::constants::K_min;
+        Ks[world_size - 1] = settings::constants::K_max;
+        settings::constants::Ks = Ks;
     }
 }
