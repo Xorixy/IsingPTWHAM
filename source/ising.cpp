@@ -42,7 +42,6 @@ void ising::State::recalculate_energy() noexcept {
     }
     assert(m_energy % 2 == 0);
     m_energy /= 2;
-    m_energy += m_dim*m_size;
 }
 
 void ising::State::print_neighbours() const noexcept {
@@ -112,7 +111,7 @@ int ising::State::flip_random_spin(const double K, pcg64& prng) noexcept {
     int e_diff = 0;
     unsigned char spin = m_spins[point_flip];
     for (int in = 0 ; in < 2*m_dim ; in++) {
-        e_diff += 2*(spin == *m_neighbours[2*m_dim*point_flip + in]) - 1;
+        e_diff += 4*(spin == *m_neighbours[2*m_dim*point_flip + in]) - 2;
     }
     if (sgn(-K*e_diff) >= 0 || rnd::uniform(0.0, 1.0) < exp(-K*e_diff)) {
         m_magnetization += 2 - 4*m_spins[point_flip];
@@ -141,6 +140,7 @@ int ising::State::get_magnetization() const noexcept {
 
 
 void ising::State::print() const noexcept {
+    fmt::print("energy : {}, magnetization : {}\n", m_energy, m_magnetization);
     if (m_dim == 1) {
         for (int is = 0 ; is < m_size ; is++) {
             if (m_spins.at(is) == 1)
@@ -151,6 +151,19 @@ void ising::State::print() const noexcept {
                 fmt::print("  ?  ");
         }
         fmt::print("\n");
+    }
+    if (m_dim == 2 && m_sizes[0] == 2 && m_sizes[1] == 2) {
+        for (int i = 0 ; i < 2 ; i++) {
+            for (int j = 0 ; j < 2 ; j++) {
+                if (m_spins.at(2*i + j) == 1)
+                    fmt::print("  1  ");
+                else if (m_spins.at(2*i + j) == 0)
+                    fmt::print(" -1 ");
+                else
+                    fmt::print("  ?  ");
+            }
+            fmt::print("\n");
+        }
     }
 }
 
@@ -253,3 +266,4 @@ double ising::Ising::get_K() const noexcept {
 void ising::Ising::set_K(const double K) {
     m_K = K;
 }
+

@@ -7,9 +7,7 @@ import scipy as scp
 
 
 
-filename = "../data/big-swap.h5"
-
-size = 100*100
+filename = "../data/manual_spacing-3.h5"
 
 time_series_start = 0
 time_series_end = 1000
@@ -25,8 +23,7 @@ n_processes = len(f.keys())
 time_series_length = len(f['0/K_series'])
 print(time_series_length)
 
-energy_time_series = np.zeros([n_processes, time_series_length])
-magnetization_time_series = np.zeros([n_processes, time_series_length])
+
 
 Ks = np.array([])
 
@@ -40,10 +37,14 @@ m_hist_fig, m_hist_ax = plt.subplots()
 for key in f.keys():
     sim = f[key]
     K_series = sim["K_series"]
+    time_series_end = len(K_series)
     k_ax.plot(K_series[time_series_start:time_series_end], label = key)
     for K in K_series[:]:
         if not Ks.__contains__(K):
             Ks = np.append(Ks, K)
+
+energy_time_series = np.zeros([n_processes, time_series_length])
+magnetization_time_series = np.zeros([n_processes, time_series_length])
 
 print(Ks)
 if len(Ks) != n_processes:
@@ -63,7 +64,7 @@ for ik in range(n_processes):
         energy_time_series[ik][Kmask] = E_series[Kmask]
         magnetization_time_series[ik][Kmask] = M_series[Kmask]
 
-magnetization_time_series = magnetization_time_series * 1.0/size
+magnetization_time_series = magnetization_time_series
 
 max_energy = np.max(energy_time_series)
 min_energy = np.min(energy_time_series)
@@ -72,15 +73,14 @@ min_mag = np.min(magnetization_time_series)
 
 
 
-
 for ik in range(n_processes):
     K = Ks[ik]
-    #e_ax.plot(energy_time_series[ik][time_series_start:time_series_end], label = Ks[ik])
-    #m_ax.plot(magnetization_time_series[ik][time_series_start:time_series_end], label = Ks[ik])
-    #e_hist = np.histogram(energy_time_series[ik], bins=n_e_bins, range=(min_energy, max_energy))
-    #m_hist = np.histogram(magnetization_time_series[ik], bins=n_m_bins, range=(min_mag, max_mag))
-    #e_hist_ax.stairs(*e_hist, label = Ks[ik])
-    #m_hist_ax.stairs(*m_hist, label = Ks[ik])
+    e_ax.plot(energy_time_series[ik][time_series_start:time_series_end], label = Ks[ik])
+    m_ax.plot(magnetization_time_series[ik][time_series_start:time_series_end], label = Ks[ik])
+    e_hist = np.histogram(energy_time_series[ik], bins=n_e_bins, range=(min_energy, max_energy))
+    m_hist = np.histogram(magnetization_time_series[ik], bins=n_m_bins, range=(min_mag, max_mag))
+    e_hist_ax.stairs(*e_hist, label = Ks[ik])
+    m_hist_ax.stairs(*m_hist, label = Ks[ik])
 
 
 
@@ -109,7 +109,7 @@ m_hist_ax.set_xlabel('Magnetization')
 m_hist_ax.set_ylabel('Number of occurrences')
 m_hist_ax.legend()
 
-#plt.show()
+plt.show()
 
 
 

@@ -155,13 +155,14 @@ void mpi_pt::run_equilibration(ising::Ising &local_ising, std::vector<int> &worl
         }
         swap_counter -= n_therm;
         local_ising.run_step(n_therm, false);
+        if (world_rank == -1) {
+            fmt::print("N_up : {}\nN_down : {}\n", fmt::join(n_up, ","), fmt::join(n_down, ","));
+            settings::constants::Ks = calculate_new_spacings(settings::constants::Ks, n_up, n_down);
+        }
+        update_Ks(local_ising, world_order);
     }
     if (world_rank == 0) {
-        std::vector<double> f(world_size, 0.0);
-        for (int i = 0 ; i < world_size ; i++) {
-            f[i] = n_up[i]*1.0/(n_up[i] + n_down[i]);
-        }
-        fmt::print("f : {}\n", fmt::join(f, ","));
+        fmt::print("Ks : {}\n", fmt::join(settings::constants::Ks, ","));
     }
 }
 
@@ -241,5 +242,63 @@ void mpi_pt::init_Ks() {
         Ks[0] = settings::constants::K_min;
         Ks[world_size - 1] = settings::constants::K_max;
         settings::constants::Ks = Ks;
+    }
+}
+
+std::vector<double> mpi_pt::calculate_new_spacings(const std::vector<double> & old_spacings, const std::vector<int> & n_up, const std::vector<int> & n_down) {
+    const size_t size = old_spacings.size();
+    assert(n_up.size() == size && n_down.size() == size);
+    std::vector<double> new_spacings(size);
+    double C_inv = 0.0;
+    for (size_t i = 0; i < size - 1; i++) {
+        double delta_f = static_cast<double>(n_up[i])/static_cast<double>(n_up[i] + n_down[i]) - static_cast<double>(n_up[i + 1])/static_cast<double>(n_up[i + 1] + n_down[i + 1]);
+        C_inv += std::sqrt(delta_f);
+    }
+    double C = 1.0/C_inv;
+    fmt::print("C = {}\n", C);
+    new_spacings[0] = old_spacings[0];
+    int mu_counter = 0;
+    int spacing_counter = 1;
+    double integral_sum = 0.0;
+    while(mu_counter < size - 1) {
+        fmt::print("Mu counter: {}\n", mu_counter);
+        double target_integral = static_cast<double>(spacing_counter) / static_cast<double>(size - 1);
+        const int i = mu_counter;
+        double delta_f = static_cast<double>(n_up[i])/static_cast<double>(n_up[i] + n_down[i]) - static_cast<double>(n_up[i + 1])/static_cast<double>(n_up[i + 1] + n_down[i + 1]);
+        double integral_rest = integral_sum + C*std::sqrt(delta_f) - target_integral;
+        fmt::print("Integral sum: {}\n", integral_sum);
+        fmt::print("C sqrt delta f: {}\n", C*std::sqrt(delta_f));
+        fmt::print("Target: {}\n", target_integral);
+        fmt::print("Integral rest: {}\n", integral_rest);
+        while(integral_rest >= 0) {
+            double delta_p = old_spacings[mu_counter + 1] - old_spacings[mu_counter];
+            double next_spacing = old_spacings[mu_counter] + (target_integral - integral_sum)*delta_p/(C*std::sqrt(delta_f));
+            fmt::print("Next spacing: {}\n", next_spacing);
+            new_spacings[spacing_counter] = next_spacing;
+            spacing_counter++;
+            target_integral = static_cast<double>(spacing_counter) / static_cast<double>(size - 1);
+            integral_rest = integral_sum + C*std::sqrt(delta_f) - target_integral;
+        }
+        integral_sum += C*std::sqrt(delta_f);
+        mu_counter++;
+    }
+    new_spacings[size - 1] = old_spacings[size - 1];
+
+    return new_spacings;
+}
+
+void mpi_pt::update_Ks(ising::Ising & local_ising, std::vector<int> & world_order) {
+    if (world_rank == 0) {
+        for (int i = 0; i < world_order.size(); i++) {
+            if (world_order[i] == 0) {
+                local_ising.set_K(settings::constants::Ks[i]);
+            } else {
+                MPI_Send(&settings::constants::Ks[i], 1, MPI_DOUBLE, world_order[i], 0, MPI_COMM_WORLD);
+            }
+        }
+    } else {
+        double new_K;
+        MPI_Recv(&new_K, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        local_ising.set_K(new_K);
     }
 }
